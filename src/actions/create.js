@@ -1,5 +1,7 @@
-import { existsSync, mkdirSync, writeFileSync } from 'fs'
+import chalk from 'chalk'
+import { join } from 'path'
 import { cwd } from 'process'
+import { existsSync, mkdirSync, writeFileSync } from 'fs'
 
 import { ErrorCode } from '../constants.js'
 
@@ -15,10 +17,12 @@ export const create = async (appName, options) => {
 
   // 1. Whit the appName we create the application folder.
 
+  const appDirectory = join(currentDirectory, appName)
+
   if (!existsSync(appName)) {
-    mkdirSync(`${currentDirectory}/${appName}`)
+    mkdirSync(appDirectory)
   } else {
-    // throw new Error(ErrorCode.APP_EXISTS)
+    throw new Error(ErrorCode.APP_EXISTS)
   }
 
   /**
@@ -28,27 +32,32 @@ export const create = async (appName, options) => {
    * TODO: Check if is a path or a git repo (-p, -g, etc.).
    */
 
-  // const basePath = process.env._
-  const basePath = '/opt/homebrew/lib/node_modules/create-app'
+  const { pathname } = new URL('../..', import.meta.url)
 
-  console.log(basePath)
+  // TODO: Is there a cleaner way to do this?
 
-  if (existsSync(`${basePath}/src/templates/${template}`)) {
-    // 3. If the template exist we import the config file (index).
+  const basePath = pathname.replace(/%20/g, ' ')
 
-    const { config } = await import(`../templates/${template}/index.js`)
+  const templatePath = join(basePath, 'src', 'templates', template)
+
+  // 3. If the template exist we import the config file (index).
+
+  if (existsSync(templatePath)) {
+    const { config } = await import(join(templatePath, 'index.js'))
 
     /**
      * 4. And now for each file described, we execute its template
      * file and write the result in the corresponding folder.
      */
 
-    const { files } = config
+    console.log() // Empty line.
+
+    const { language, files, onCompletion } = config
 
     for (const file of files) {
       const { name, extension, path } = file
-      const fileName = `${name}${extension ? `.${extension}` : ''}`
-      const destination = `${currentDirectory}/${appName}/${path}`
+      const fullName = `${name}${extension ? `.${extension}` : ''}`
+      const destination = join(appDirectory, path)
 
       // 4.1. First we create the folder.
 
@@ -58,15 +67,19 @@ export const create = async (appName, options) => {
 
       if (name) {
         const { createTemplate } = await import(
-          `${basePath}/src/templates/${template}/files/${name}.js`
+          join(templatePath, 'files', `${name}.js`)
         )
 
         // 4.3. Finally, we write the file into the folder.
 
-        writeFileSync(`${destination}/${fileName}`, createTemplate(appName))
+        writeFileSync(join(destination, fullName), createTemplate(appName))
       }
+
+      console.log(chalk.blue('Created:'), chalk.cyan(fullName))
     }
+
+    onCompletion(language)
   } else {
-    console.log('FUCK!')
+    throw new Error(ErrorCode.NO_TEMPLATE)
   }
 }
