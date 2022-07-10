@@ -55,8 +55,10 @@ export const create = async (appName, options) => {
     const { language, files, onCompletion } = config
 
     for (const file of files) {
-      const { name, extension, path } = file
-      const fullName = `${name}${extension ? `.${extension}` : ''}`
+      const { name, fileName, extension, path, type } = file
+      const fullName = `${type === 'config' ? '.' : ''}${name}${
+        extension ? `.${extension}` : ''
+      }`
       const destination = join(appDirectory, path)
 
       // 4.1. First we create the folder.
@@ -65,9 +67,9 @@ export const create = async (appName, options) => {
 
       // 4.2. Then we read the template file.
 
-      if (name) {
+      if (name || fileName) {
         const { createTemplate } = await import(
-          join(templatePath, 'files', `${name}.js`)
+          join(templatePath, 'files', `${fileName ? fileName : name}.js`)
         )
 
         // 4.3. Finally, we write the file into the folder.
@@ -78,7 +80,7 @@ export const create = async (appName, options) => {
       console.log(chalk.blue('Created:'), chalk.cyan(fullName))
     }
 
-    onCompletion(language)
+    onCompletion(appName, language)
   } else {
     throw new Error(ErrorCode.NO_TEMPLATE)
   }

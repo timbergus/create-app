@@ -29,9 +29,9 @@ export const config = {
     console.log(
       chalk.green('Open your new'),
       chalk.yellow(language),
-      chalk.green('application.'),
+      chalk.green('application'),
     )
-    console.log(chalk.green('Instructions in the README.'))
+    console.log(chalk.green('Instructions in the README'))
     console.log(chalk.green('Have fun :)'))
     console.log()
   },
